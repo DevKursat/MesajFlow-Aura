@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Settings, QrCode, History,
   Lock, ArrowRight, MessageCircle, RefreshCw, LogOut, MessageSquare,
   Database, Copy, Check as CheckIcon, Info as InfoIcon, AlertOctagon,
-  ShoppingBag, Users, Bot, UtensilsCrossed, Store, UserPlus, Building2, Shield
+  ShoppingBag, Users, Bot, UtensilsCrossed, Store, UserPlus, Building2, Shield, ClipboardList, BookOpen
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import HistoryView from './components/HistoryView';
@@ -366,8 +366,8 @@ const App: React.FC = () => {
   ];
 
   const restaurantMenuItems: typeof baseMenuItems = [
-    { id: 'orders', label: 'Siparişler', icon: <UtensilsCrossed size={20} /> },
-    { id: 'menu', label: 'Menü Yönetimi', icon: <UtensilsCrossed size={20} /> },
+    { id: 'orders', label: 'Siparişler', icon: <ClipboardList size={20} /> },
+    { id: 'menu', label: 'Menü Yönetimi', icon: <BookOpen size={20} /> },
   ];
 
   const ecommerceMenuItems: typeof baseMenuItems = [
@@ -399,7 +399,7 @@ const App: React.FC = () => {
             </div>
             <p className="text-[8px] text-zinc-600 mt-1">{businessType === 'RESTAURANT' ? 'Restoran' : 'E-Ticaret'}</p>
           </div>
-          <nav className="flex-1 px-6 space-y-2">
+          <nav className="flex-1 px-6 space-y-2 overflow-y-auto">
             {menuItems.map((item) => (
               <button
                 key={item.id}
