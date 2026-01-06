@@ -368,13 +368,11 @@ const App: React.FC = () => {
   const restaurantMenuItems: typeof baseMenuItems = [
     { id: 'orders', label: 'Siparişler', icon: <UtensilsCrossed size={20} /> },
     { id: 'menu', label: 'Menü Yönetimi', icon: <UtensilsCrossed size={20} /> },
-    { id: 'import', label: 'AI Menü Import', icon: <Bot size={20} /> },
   ];
 
   const ecommerceMenuItems: typeof baseMenuItems = [
     { id: 'orders', label: 'Siparişler', icon: <ShoppingBag size={20} /> },
     { id: 'products', label: 'Ürün Yönetimi', icon: <Store size={20} /> },
-    { id: 'import', label: 'AI Ürün Import', icon: <Bot size={20} /> },
   ];
 
   const commonEndMenuItems: typeof baseMenuItems = [
