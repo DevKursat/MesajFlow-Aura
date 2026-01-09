@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Settings, QrCode, History,
   Lock, ArrowRight, MessageCircle, RefreshCw, LogOut, MessageSquare,
   Database, Copy, Check as CheckIcon, Info as InfoIcon, AlertOctagon,
-  ShoppingBag, Users, Bot, UtensilsCrossed, Store, UserPlus, Building2, Shield, ClipboardList, BookOpen
+  ShoppingBag, Users, Bot, UtensilsCrossed, Store, UserPlus, Building2, Shield, ClipboardList, BookOpen, Snowflake, AlertTriangle
 } from 'lucide-react';
 import DashboardView from './components/DashboardView';
 import HistoryView from './components/HistoryView';
@@ -87,11 +87,7 @@ const LoginView: React.FC<{ onLogin: (settings: AiSettings) => void, showToast: 
         throw new Error("INVALID_CREDENTIALS");
       }
     } catch (err: any) {
-      if (err.code === 'ACCOUNT_FROZEN') {
-        setError(true);
-        showToast("⚠️ Hesabınız donduruldu veya abonelik süreniz doldu. Lütfen yönetici ile iletişime geçin.", "ERROR");
-        setTimeout(() => setError(false), 3000);
-      } else if (err.message === 'INVALID_CREDENTIALS') {
+      if (err.message === 'INVALID_CREDENTIALS') {
         const nextAttempts = failedAttempts + 1;
         setFailedAttempts(nextAttempts);
         setError(true);
@@ -290,6 +286,7 @@ const App: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
   const [businessId, setBusinessId] = useState(localStorage.getItem('aura_business_id') || '');
+  const [isFrozen, setIsFrozen] = useState(false);
 
   const showToast = useCallback((message: string, type: ToastType) => {
     setToast({ message, type });
@@ -300,6 +297,7 @@ const App: React.FC = () => {
     setBusinessType(settings.business_type);
     setBusinessName(settings.business_name);
     setBusinessId(settings.id);
+    setIsFrozen(settings.is_frozen || false);
     localStorage.setItem('aura_business_id', settings.id);
   };
 
@@ -393,7 +391,32 @@ const App: React.FC = () => {
 
   return (
     <ErrorBoundary>
-      <div className="flex h-screen bg-[#050505] text-zinc-100 overflow-hidden font-['Inter']">
+      <div className="flex h-screen bg-[#050505] text-zinc-100 overflow-hidden font-['Inter'] relative">
+        {/* Frozen Account Overlay */}
+        {isFrozen && (
+          <div className="absolute inset-0 z-50 bg-black/90 backdrop-blur-xl flex items-center justify-center p-8">
+            <div className="max-w-lg text-center space-y-6 animate-in zoom-in duration-500">
+              <div className="w-24 h-24 bg-sky-500/10 border border-sky-500/30 rounded-full flex items-center justify-center mx-auto">
+                <Snowflake size={48} className="text-sky-500 animate-pulse" />
+              </div>
+              <h1 className="text-3xl font-black text-white">Hesabınız <span className="text-sky-500">Donduruldu</span></h1>
+              <p className="text-zinc-400 text-lg leading-relaxed">
+                Abonelik süreniz doldu veya hesabınız yönetici tarafından donduruldu.
+                Özellikleri kullanmak için lütfen aboneliğinizi yenileyin.
+              </p>
+              <div className="bg-sky-500/10 border border-sky-500/20 rounded-2xl p-4 flex items-center gap-3">
+                <AlertTriangle size={20} className="text-sky-500 shrink-0" />
+                <p className="text-sky-400 text-sm">Destek için <span className="font-bold">yönetici ile iletişime</span> geçin.</p>
+              </div>
+              <button
+                onClick={() => { localStorage.removeItem('aura_auth'); setIsAuthenticated(false); setIsFrozen(false); }}
+                className="mt-4 px-8 py-4 bg-zinc-800 text-zinc-400 rounded-2xl font-black uppercase tracking-widest hover:bg-zinc-700 transition-all flex items-center justify-center gap-2 mx-auto"
+              >
+                <LogOut size={18} /> Çıkış Yap
+              </button>
+            </div>
+          </div>
+        )}
         <aside className="w-72 bg-[#0a0a0b] border-r border-white/5 flex flex-col shadow-2xl z-20">
           <div className="p-10">
             <h2 className="text-3xl font-black tracking-tighter">Au<span className="text-emerald-500">ra</span></h2>
