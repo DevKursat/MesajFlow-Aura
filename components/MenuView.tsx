@@ -22,6 +22,7 @@ const MenuView: React.FC<MenuViewProps> = ({ businessId, showToast }) => {
     const [isSaving, setIsSaving] = useState(false);
     const [newCategoryName, setNewCategoryName] = useState('');
     const [itemForm, setItemForm] = useState({ name: '', description: '', price: '' });
+    const [isDragging, setIsDragging] = useState(false);
 
     const loadData = async () => {
         setIsLoading(true);
@@ -41,6 +42,19 @@ const MenuView: React.FC<MenuViewProps> = ({ businessId, showToast }) => {
     const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) { setImportFile(file); setImportPreview(URL.createObjectURL(file)); setExtractedItems([]); }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+        const file = e.dataTransfer.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            setImportFile(file);
+            setImportPreview(URL.createObjectURL(file));
+            setExtractedItems([]);
+        } else {
+            showToast('Lütfen bir görsel dosyası sürükleyin', 'WARN');
+        }
     };
 
     const analyzeImage = async () => {
@@ -110,8 +124,17 @@ const MenuView: React.FC<MenuViewProps> = ({ businessId, showToast }) => {
                         </div>
                         <div className="p-6 space-y-4">
                             {!importPreview ? (
-                                <label className="block border-2 border-dashed border-white/10 rounded-2xl p-8 text-center cursor-pointer hover:border-violet-500/50">
-                                    <FileImage size={48} className="mx-auto mb-4 text-zinc-600" /><p className="text-zinc-400">Menü fotoğrafı yükle</p>
+                                <label
+                                    className={`block border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all ${isDragging ? 'border-violet-500 bg-violet-500/10 scale-[1.02]' : 'border-white/10 hover:border-violet-500/50'}`}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    onDrop={handleDrop}
+                                >
+                                    <FileImage size={48} className={`mx-auto mb-4 ${isDragging ? 'text-violet-500 animate-bounce' : 'text-zinc-600'}`} />
+                                    <p className={isDragging ? 'text-violet-400 font-bold' : 'text-zinc-400'}>
+                                        {isDragging ? 'Bırakın!' : 'Menü fotoğrafı yükle veya sürükle'}
+                                    </p>
+                                    <p className="text-xs text-zinc-600 mt-2">PNG, JPG, WEBP desteklenir</p>
                                     <input type="file" accept="image/*" onChange={handleImportFile} className="hidden" />
                                 </label>
                             ) : (
@@ -123,12 +146,47 @@ const MenuView: React.FC<MenuViewProps> = ({ businessId, showToast }) => {
                                         </button>
                                     ) : (
                                         <div className="space-y-2 max-h-60 overflow-y-auto">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="text-xs text-zinc-500">{extractedItems.filter(i => i.selected).length}/{extractedItems.length} seçili</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => setExtractedItems(ex => ex.map(e => ({ ...e, selected: true })))} className="text-xs text-violet-400 hover:text-violet-300">Tümünü Seç</button>
+                                                    <button onClick={() => setExtractedItems(ex => ex.map(e => ({ ...e, selected: false })))} className="text-xs text-zinc-500 hover:text-zinc-400">Hiçbirini Seçme</button>
+                                                </div>
+                                            </div>
                                             {extractedItems.map(item => (
                                                 <div key={item.id} className={`p-3 rounded-xl border ${item.selected ? 'border-violet-500/30 bg-violet-500/5' : 'border-white/5 opacity-50'}`}>
-                                                    <div className="flex items-center gap-3">
-                                                        <button onClick={() => setExtractedItems(ex => ex.map(e => e.id === item.id ? { ...e, selected: !e.selected } : e))} className={`w-5 h-5 rounded border flex items-center justify-center ${item.selected ? 'bg-violet-500 border-violet-500' : 'border-white/20'}`}>{item.selected && <Check size={12} />}</button>
-                                                        <div className="flex-1"><div className="flex justify-between"><span className="font-bold">{item.name}</span><span className="text-violet-400 font-bold">₺{item.price.toFixed(2)}</span></div>{item.description && <p className="text-xs text-zinc-500">{item.description}</p>}</div>
-                                                        <button onClick={() => setExtractedItems(ex => ex.filter(e => e.id !== item.id))} className="p-1 text-zinc-500 hover:text-rose-500"><Trash2 size={14} /></button>
+                                                    <div className="flex items-start gap-3">
+                                                        <button onClick={() => setExtractedItems(ex => ex.map(e => e.id === item.id ? { ...e, selected: !e.selected } : e))} className={`w-5 h-5 mt-1 rounded border flex items-center justify-center shrink-0 ${item.selected ? 'bg-violet-500 border-violet-500' : 'border-white/20'}`}>{item.selected && <Check size={12} />}</button>
+                                                        <div className="flex-1 space-y-2">
+                                                            <div className="flex gap-2">
+                                                                <input
+                                                                    type="text"
+                                                                    value={item.name}
+                                                                    onChange={(e) => setExtractedItems(ex => ex.map(i => i.id === item.id ? { ...i, name: e.target.value } : i))}
+                                                                    className="flex-1 bg-zinc-900/50 border border-white/10 rounded-lg px-3 py-1.5 text-sm font-bold outline-none focus:border-violet-500/50"
+                                                                    placeholder="Ürün adı"
+                                                                />
+                                                                <div className="relative w-24">
+                                                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-zinc-500 text-xs">₺</span>
+                                                                    <input
+                                                                        type="number"
+                                                                        value={item.price}
+                                                                        onChange={(e) => setExtractedItems(ex => ex.map(i => i.id === item.id ? { ...i, price: parseFloat(e.target.value) || 0 } : i))}
+                                                                        className="w-full bg-zinc-900/50 border border-white/10 rounded-lg px-3 py-1.5 pl-6 text-sm font-bold text-violet-400 outline-none focus:border-violet-500/50"
+                                                                        placeholder="0.00"
+                                                                        step="0.01"
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                            <input
+                                                                type="text"
+                                                                value={item.description}
+                                                                onChange={(e) => setExtractedItems(ex => ex.map(i => i.id === item.id ? { ...i, description: e.target.value } : i))}
+                                                                className="w-full bg-zinc-900/30 border border-white/5 rounded-lg px-3 py-1.5 text-xs text-zinc-400 outline-none focus:border-violet-500/50"
+                                                                placeholder="Açıklama (opsiyonel)"
+                                                            />
+                                                        </div>
+                                                        <button onClick={() => setExtractedItems(ex => ex.filter(e => e.id !== item.id))} className="p-1.5 text-zinc-500 hover:text-rose-500 shrink-0"><Trash2 size={14} /></button>
                                                     </div>
                                                 </div>
                                             ))}
