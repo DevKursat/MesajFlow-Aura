@@ -305,6 +305,23 @@ const App: React.FC = () => {
     if (!isAuthenticated) return;
     const init = async () => {
       try {
+        // Mevcut hesap durumunu kontrol et
+        const savedBusinessId = localStorage.getItem('aura_business_id');
+        if (savedBusinessId) {
+          const settings = await fetchAiSettings(savedBusinessId);
+          if (settings) {
+            // Süresi dolmuş mu kontrol et
+            if (settings.subscription_end_date) {
+              const endDate = new Date(settings.subscription_end_date);
+              const now = new Date();
+              if (endDate < now && !settings.is_frozen) {
+                settings.is_frozen = true;
+              }
+            }
+            setIsFrozen(settings.is_frozen || false);
+          }
+        }
+
         const txs = await fetchTransactions();
         setUnreadCount(txs.filter(t => t.status === 'PENDING').length);
       } catch (err) {
@@ -313,12 +330,28 @@ const App: React.FC = () => {
     };
     init();
 
+    // Realtime subscription for transactions
     const sub = subscribeToTable('transactions', () => {
       fetchTransactions().then(txs => {
         setUnreadCount(txs.filter(t => t.status === 'PENDING').length);
       }).catch(err => logError('REALTIME', 'Güncelleme hatası', err));
     });
-    return () => { sub.unsubscribe(); };
+
+    // Realtime subscription for ai_settings (hesap durumu değişikliği)
+    const settingsSub = subscribeToTable('ai_settings', async () => {
+      const savedBusinessId = localStorage.getItem('aura_business_id');
+      if (savedBusinessId) {
+        const settings = await fetchAiSettings(savedBusinessId);
+        if (settings) {
+          setIsFrozen(settings.is_frozen || false);
+        }
+      }
+    });
+
+    return () => {
+      sub.unsubscribe();
+      settingsSub.unsubscribe();
+    };
   }, [isAuthenticated]);
 
   // /boss route için ayrı render
