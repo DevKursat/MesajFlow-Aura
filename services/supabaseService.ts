@@ -253,12 +253,17 @@ export const registerBusiness = async (
   password: string,
   businessType: BusinessType,
   useWhatsapp: boolean = true,
-  useTelegram: boolean = false
+  useTelegram: boolean = false,
+  subscriptionDays: number = 30
 ): Promise<AiSettings> => {
   try {
     const defaultInstruction = businessType === 'RESTAURANT'
       ? 'Sen bir restoran müşteri destek asistanısın. Menü, sipariş ve rezervasyon konularında yardımcı ol. Samimi ve çözüm odaklı ol.'
       : 'Sen bir e-ticaret müşteri destek asistanısın. Ürün, sipariş takibi ve iade konularında yardımcı ol. Profesyonel ve hızlı yanıt ver.';
+
+    // Bitiş tarihini hesapla
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + subscriptionDays);
 
     const { data, error } = await supabase
       .from('ai_settings')
@@ -271,7 +276,10 @@ export const registerBusiness = async (
         human_simulation: true,
         delay_seconds: 3,
         use_whatsapp: useWhatsapp,
-        use_telegram: useTelegram
+        use_telegram: useTelegram,
+        is_frozen: false,
+        subscription_days: subscriptionDays,
+        subscription_end_date: endDate.toISOString()
       }])
       .select()
       .single();
@@ -281,6 +289,54 @@ export const registerBusiness = async (
   } catch (err: any) {
     logError('Register', 'İşletme kaydı başarısız', err);
     throw err;
+  }
+};
+
+// İşletme güncelleme
+export const updateBusiness = async (businessId: string, updates: Partial<AiSettings>) => {
+  try {
+    // Eğer subscription_days değiştiyse, yeni bitiş tarihi hesapla
+    if (updates.subscription_days) {
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + updates.subscription_days);
+      updates.subscription_end_date = endDate.toISOString();
+    }
+
+    const { error } = await supabase.from('ai_settings').update(updates).eq('id', businessId);
+    if (error) throw error;
+  } catch (err) {
+    logError('Admin', 'İşletme güncellenemedi', err);
+    throw err;
+  }
+};
+
+// Hesap dondur/çöz
+export const toggleFreezeBusiness = async (businessId: string, freeze: boolean) => {
+  try {
+    const { error } = await supabase.from('ai_settings').update({ is_frozen: freeze }).eq('id', businessId);
+    if (error) throw error;
+  } catch (err) {
+    logError('Admin', 'Hesap dondurma/çözme başarısız', err);
+    throw err;
+  }
+};
+
+// Süresi dolan hesapları kontrol et ve dondur
+export const checkAndFreezeExpired = async (): Promise<number> => {
+  try {
+    const now = new Date().toISOString();
+    const { data, error } = await supabase
+      .from('ai_settings')
+      .update({ is_frozen: true })
+      .lt('subscription_end_date', now)
+      .eq('is_frozen', false)
+      .select();
+
+    if (error) throw error;
+    return data?.length || 0;
+  } catch (err) {
+    logError('Admin', 'Süresi dolan hesaplar kontrol edilemedi', err);
+    return 0;
   }
 };
 

@@ -43,6 +43,9 @@ export interface AiSettings {
   human_simulation: boolean; // Yazım hatası vs yapma
   use_whatsapp: boolean; // WhatsApp kullanımı
   use_telegram: boolean; // Telegram kullanımı
+  is_frozen: boolean; // Hesap donuk mu?
+  subscription_days: number; // Abonelik süresi (gün)
+  subscription_end_date?: string; // Abonelik bitiş tarihi
   created_at?: string;
 }
 
